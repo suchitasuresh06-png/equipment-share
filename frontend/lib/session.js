@@ -1,7 +1,7 @@
-// Simple localStorage-backed "session" for this demo app. There's no
-// authentication system in scope — this just remembers which role the
-// person picked (Buyer/Seller) and the name+phone they entered once at
-// onboarding, so buyers never have to re-type their details when booking.
+// Session is now backed by a real login call to the backend (see
+// app/start/page.js) — this just stores whatever the server returned
+// (user_id, name, phone, role) in localStorage so the person doesn't
+// have to log in again every time they open the app.
 
 const KEY = "equipment_share_session";
 
@@ -11,7 +11,7 @@ export function getSession() {
     const raw = window.localStorage.getItem(KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (!parsed?.role || !parsed?.name || !parsed?.phone) return null;
+    if (!parsed?.user_id || !parsed?.role || !parsed?.name || !parsed?.phone) return null;
     return parsed;
   } catch (err) {
     return null;

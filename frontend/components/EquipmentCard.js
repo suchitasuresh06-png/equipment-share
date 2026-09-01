@@ -28,6 +28,9 @@ export default function EquipmentCard({ equipment, onOpen, onRent }) {
         <div className="content">
           <div className="name">{equipment.name}</div>
           <div className="meta-line">ID · GEN-{String(equipment.equipment_id).padStart(4, "0")}</div>
+          {equipment.owner_name && (
+            <div className="meta-line">Listed by {equipment.owner_name}</div>
+          )}
           <div className="location-line">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M12 21s7-7.2 7-12a7 7 0 1 0-14 0c0 4.8 7 12 7 12Z" />
@@ -57,7 +60,7 @@ export default function EquipmentCard({ equipment, onOpen, onRent }) {
             onRent(equipment);
           }}
         >
-          {isAvailable ? "Rent now" : "Rented"}
+          {isAvailable ? "Rent now" : "Unavailable"}
           {isAvailable && (
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />

@@ -37,7 +37,10 @@ export default function ProfilePage() {
             totalSpent,
           });
         } else {
-          const [equipmentList, bookings] = await Promise.all([getEquipmentList({}), getBookings({})]);
+          const [equipmentList, bookings] = await Promise.all([
+            getEquipmentList({ ownerId: session.user_id }),
+            getBookings({ ownerId: session.user_id }),
+          ]);
           const uniqueCustomers = new Set(bookings.map((b) => b.customer_phone)).size;
           setStats({
             totalListed: equipmentList.length,

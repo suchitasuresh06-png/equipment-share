@@ -27,7 +27,7 @@ export default function BookingsPage() {
   useEffect(() => {
     if (!session) return;
     setLoading(true);
-    getBookings(session.role === "buyer" ? { phone: session.phone } : {})
+    getBookings(session.role === "buyer" ? { phone: session.phone } : { ownerId: session.user_id })
       .then(setBookings)
       .catch((err) => setErrorMsg(err.message))
       .finally(() => setLoading(false));
@@ -45,7 +45,7 @@ export default function BookingsPage() {
         <Logo />
       </div>
 
-      <div className="greeting">{isBuyer ? "Your rentals" : "All bookings"}</div>
+      <div className="greeting">{isBuyer ? "Your rentals" : "Bookings for your equipment"}</div>
       <h1 className="hero-heading" style={{ fontSize: 22 }}>
         {isBuyer ? (
           <>
@@ -69,7 +69,7 @@ export default function BookingsPage() {
 
       {!loading &&
         bookings.map((b) => {
-          const until = getRentedUntilDate(b.booking_date, b.rental_days);
+          const until = getRentedUntilDate(b.rental_start_date, b.rental_days);
           return (
             <div className="booking-row" key={b.booking_id}>
               <div className="booking-row-top">
@@ -84,7 +84,7 @@ export default function BookingsPage() {
                 <span>{formatCurrency(b.total_amount)}</span>
               </div>
               <div className="booking-dates">
-                Booked {formatDate(b.booking_date)} → rented until <strong>{formatDate(until)}</strong>
+                From {formatDate(b.rental_start_date)} → rented until <strong>{formatDate(until)}</strong>
               </div>
             </div>
           );

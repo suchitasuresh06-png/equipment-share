@@ -69,18 +69,20 @@ export default function SellPage() {
     setSessionState(s);
   }, [router]);
 
-  async function loadEquipment() {
+  async function loadEquipment(ownerId) {
     try {
-      const data = await getEquipmentList({});
+      // Scoped to this seller only — a brand new seller sees an empty
+      // list until they add their first machine.
+      const data = await getEquipmentList({ ownerId });
       setEquipmentList(data);
     } catch (err) {
       setErrorMsg(err.message);
     }
   }
 
-  async function checkForNewBookings() {
+  async function checkForNewBookings(ownerId) {
     try {
-      const bookings = await getBookings({});
+      const bookings = await getBookings({ ownerId });
       if (!bookings.length) return;
       const lastSeen = getLastSeenBookingId();
       const newest = Math.max(...bookings.map((b) => b.booking_id));
@@ -88,10 +90,10 @@ export default function SellPage() {
       if (lastSeen && newest > lastSeen) {
         const freshOnes = bookings.filter((b) => b.booking_id > lastSeen);
         freshOnes.forEach((b) => {
-          addNotification(`"${b.equipment_name}" is now out for renting.`);
+          addNotification(`"${b.equipment_name}" was booked from ${b.rental_start_date} for ${b.rental_days} day(s).`);
         });
-        setToast(`"${freshOnes[0].equipment_name}" is now out for renting.`);
-        loadEquipment();
+        setToast(`"${freshOnes[0].equipment_name}" was just booked!`);
+        loadEquipment(ownerId);
       }
       setLastSeenBookingId(newest);
     } catch (err) {
@@ -102,10 +104,10 @@ export default function SellPage() {
   useEffect(() => {
     if (!session) return;
     setLoading(true);
-    loadEquipment().finally(() => setLoading(false));
+    loadEquipment(session.user_id).finally(() => setLoading(false));
 
-    checkForNewBookings();
-    pollRef.current = setInterval(checkForNewBookings, 15000);
+    checkForNewBookings(session.user_id);
+    pollRef.current = setInterval(() => checkForNewBookings(session.user_id), 15000);
     return () => clearInterval(pollRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session]);
@@ -158,6 +160,7 @@ export default function SellPage() {
     if (!validateForm()) return;
 
     const payload = {
+      owner_id: session.user_id,
       name: formData.name.trim(),
       category: formData.category,
       rent_price: Number(formData.rent_price),
@@ -177,7 +180,7 @@ export default function SellPage() {
         setMessage({ type: "success", text: "Equipment added successfully." });
       }
       setFormOpen(false);
-      await loadEquipment();
+      await loadEquipment(session.user_id);
     } catch (err) {
       setMessage({ type: "error", text: err.message });
     } finally {
@@ -189,9 +192,9 @@ export default function SellPage() {
     if (!confirm(`Delete "${item.name}"? This cannot be undone.`)) return;
     setMessage(null);
     try {
-      const res = await deleteEquipment(item.equipment_id);
+      const res = await deleteEquipment(item.equipment_id, session.user_id);
       setMessage({ type: "success", text: res.message });
-      await loadEquipment();
+      await loadEquipment(session.user_id);
     } catch (err) {
       setMessage({ type: "error", text: err.message });
     }
@@ -201,8 +204,8 @@ export default function SellPage() {
     const next = item.availability === "Available" ? "Rented" : "Available";
     setMessage(null);
     try {
-      await updateAvailability(item.equipment_id, next);
-      await loadEquipment();
+      await updateAvailability(item.equipment_id, next, session.user_id);
+      await loadEquipment(session.user_id);
     } catch (err) {
       setMessage({ type: "error", text: err.message });
     }
@@ -262,7 +265,7 @@ export default function SellPage() {
               </div>
 
               <span className={`status-pill ${item.availability === "Available" ? "green" : "amber"}`}>
-                {item.availability === "Available" ? "Available now" : "Currently rented"}
+                {item.availability === "Available" ? "Available now" : "Paused"}
               </span>
 
               <div className="owner-card-actions">
@@ -270,7 +273,7 @@ export default function SellPage() {
                   Edit
                 </button>
                 <button type="button" className="pill-btn" onClick={() => handleToggleAvailability(item)}>
-                  Mark as {item.availability === "Available" ? "Rented" : "Available"}
+                  {item.availability === "Available" ? "Pause listing" : "Resume listing"}
                 </button>
                 <button type="button" className="pill-btn danger" onClick={() => handleDelete(item)}>
                   Delete
@@ -380,7 +383,7 @@ export default function SellPage() {
                   onChange={(e) => setFormData({ ...formData, availability: e.target.value })}
                 >
                   <option value="Available">Available</option>
-                  <option value="Rented">Rented</option>
+                  <option value="Rented">Paused (not bookable)</option>
                 </select>
               </div>
 

@@ -1,8 +1,10 @@
 """
 owner_manager.py
 ----------------
-OwnerManager: handles owner-side equipment management. Performs the CRUD
-operations for equipment listings and lets the owner view all bookings.
+OwnerManager: handles owner-side equipment management. Every method that
+changes or deletes equipment checks that the equipment actually belongs
+to the seller making the request — a seller can only manage their own
+listings, never another seller's.
 
 Attributes: equipment_list, selected_equipment_id
 Methods:    add_equipment(), edit_equipment(), delete_equipment(),
@@ -27,10 +29,11 @@ class OwnerManager:
 
         cursor.execute(
             """
-            INSERT INTO equipment (name, category, rent_price, location, `condition`, availability, image_base64)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO equipment (owner_id, name, category, rent_price, location, `condition`, availability, image_base64)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
+                equipment.owner_id,
                 equipment.name,
                 equipment.category,
                 equipment.rent_price,
@@ -43,16 +46,24 @@ class OwnerManager:
         equipment.equipment_id = cursor.lastrowid
         return True, "Equipment added successfully.", equipment.get_details()
 
+    def _get_owner_id(self, cursor, equipment_id):
+        cursor.execute("SELECT owner_id FROM equipment WHERE equipment_id = %s", (equipment_id,))
+        row = cursor.fetchone()
+        return row[0] if row else None
+
     # ---------------------------------------------------------------
     # UPDATE (full edit)
     # ---------------------------------------------------------------
-    def edit_equipment(self, cursor, equipment_id: int, equipment: Equipment):
+    def edit_equipment(self, cursor, equipment_id: int, equipment: Equipment, requesting_owner_id: int):
         self.selected_equipment_id = equipment_id
 
-        cursor.execute("SELECT equipment_id FROM equipment WHERE equipment_id = %s", (equipment_id,))
-        if cursor.fetchone() is None:
+        actual_owner_id = self._get_owner_id(cursor, equipment_id)
+        if actual_owner_id is None:
             return False, "Equipment not found.", None
+        if actual_owner_id != requesting_owner_id:
+            return False, "You can only edit equipment you listed yourself.", None
 
+        equipment.owner_id = actual_owner_id
         is_valid, message = equipment.validate_equipment()
         if not is_valid:
             return False, message, None
@@ -81,13 +92,15 @@ class OwnerManager:
     # ---------------------------------------------------------------
     # UPDATE (availability only — quick toggle from the UI)
     # ---------------------------------------------------------------
-    def update_availability(self, cursor, equipment_id: int, availability: str):
+    def update_availability(self, cursor, equipment_id: int, availability: str, requesting_owner_id: int):
         if availability not in ALLOWED_AVAILABILITY:
             return False, "Availability must be either 'Available' or 'Rented'."
 
-        cursor.execute("SELECT equipment_id FROM equipment WHERE equipment_id = %s", (equipment_id,))
-        if cursor.fetchone() is None:
+        actual_owner_id = self._get_owner_id(cursor, equipment_id)
+        if actual_owner_id is None:
             return False, "Equipment not found."
+        if actual_owner_id != requesting_owner_id:
+            return False, "You can only update equipment you listed yourself."
 
         cursor.execute(
             "UPDATE equipment SET availability = %s WHERE equipment_id = %s",
@@ -98,10 +111,12 @@ class OwnerManager:
     # ---------------------------------------------------------------
     # DELETE
     # ---------------------------------------------------------------
-    def delete_equipment(self, cursor, equipment_id: int):
-        cursor.execute("SELECT equipment_id FROM equipment WHERE equipment_id = %s", (equipment_id,))
-        if cursor.fetchone() is None:
+    def delete_equipment(self, cursor, equipment_id: int, requesting_owner_id: int):
+        actual_owner_id = self._get_owner_id(cursor, equipment_id)
+        if actual_owner_id is None:
             return False, "Equipment not found."
+        if actual_owner_id != requesting_owner_id:
+            return False, "You can only delete equipment you listed yourself."
 
         cursor.execute("SELECT COUNT(*) FROM bookings WHERE equipment_id = %s", (equipment_id,))
         (booking_count,) = cursor.fetchone()
@@ -116,24 +131,33 @@ class OwnerManager:
         return True, "Equipment deleted successfully."
 
     # ---------------------------------------------------------------
-    # READ — bookings, with equipment + customer info joined in for display
+    # READ — bookings, with equipment + customer info joined in for display.
+    # Pass owner_id to scope this to only bookings for that seller's own
+    # equipment; omit it to get every booking (not used by the frontend
+    # anymore now that ownership is per-seller, but kept for flexibility).
     # ---------------------------------------------------------------
-    def view_bookings(self, cursor, phone=None):
+    def view_bookings(self, cursor, phone=None, owner_id=None):
         query = """
             SELECT b.booking_id, u.name AS customer_name, u.phone AS customer_phone,
                    e.name AS equipment_name, e.equipment_id,
-                   b.rental_days, b.total_amount, b.status, b.booking_date
+                   b.rental_start_date, b.rental_days, b.total_amount, b.status, b.booking_date
               FROM bookings b
               JOIN users u ON u.user_id = b.user_id
               JOIN equipment e ON e.equipment_id = b.equipment_id
         """
-        params = ()
+        conditions = []
+        params = []
         if phone:
-            query += " WHERE u.phone = %s"
-            params = (phone,)
+            conditions.append("u.phone = %s")
+            params.append(phone)
+        if owner_id:
+            conditions.append("e.owner_id = %s")
+            params.append(owner_id)
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
         query += " ORDER BY b.booking_date DESC"
 
-        cursor.execute(query, params)
+        cursor.execute(query, tuple(params))
         rows = cursor.fetchall()
         bookings = []
         for row in rows:
@@ -144,10 +168,11 @@ class OwnerManager:
                     "customer_phone": row[2],
                     "equipment_name": row[3],
                     "equipment_id": row[4],
-                    "rental_days": row[5],
-                    "total_amount": float(row[6]),
-                    "status": row[7],
-                    "booking_date": str(row[8]),
+                    "rental_start_date": str(row[5]),
+                    "rental_days": row[6],
+                    "total_amount": float(row[7]),
+                    "status": row[8],
+                    "booking_date": str(row[9]),
                 }
             )
         self.equipment_list = bookings

@@ -1,9 +1,12 @@
 """
 equipment.py
 ------------
-Equipment: represents a single second-hand equipment listing.
+Equipment: represents a single second-hand equipment listing, owned by
+exactly one seller (owner_id). Two different sellers can list a machine
+with the exact same name — they are simply two separate Equipment rows
+(two separate cards), never merged into one.
 
-Attributes: equipment_id, name, category, rent_price, location, condition, availability
+Attributes: equipment_id, owner_id, name, category, rent_price, location, condition, availability
 Methods:    validate_equipment(), get_details()
 """
 
@@ -21,9 +24,11 @@ class Equipment:
         condition="",
         availability="Available",
         equipment_id=None,
+        owner_id=None,
         image_base64=None,
     ):
         self.equipment_id = equipment_id
+        self.owner_id = owner_id
         self.name = (name or "").strip()
         self.category = (category or "").strip()
         self.rent_price = rent_price
@@ -61,12 +66,16 @@ class Equipment:
         if self.image_base64 and len(self.image_base64) > 6_000_000:
             return False, "Image is too large. Please use a smaller image (under ~4MB)."
 
+        if not self.owner_id:
+            return False, "Equipment must belong to a valid seller account."
+
         return True, ""
 
     def get_details(self):
         """Returns a plain dict representation, used for API responses."""
         return {
             "equipment_id": self.equipment_id,
+            "owner_id": self.owner_id,
             "name": self.name,
             "category": self.category,
             "rent_price": float(self.rent_price),

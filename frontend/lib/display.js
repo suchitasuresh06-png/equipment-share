@@ -8,7 +8,7 @@ export function getStatusPill(availability) {
   if (availability === "Available") {
     return { label: "Available now", tone: "green" };
   }
-  return { label: "Currently rented", tone: "amber" };
+  return { label: "Paused by seller", tone: "amber" };
 }
 
 // Returns a data-URI/base64 image if the equipment has one uploaded,

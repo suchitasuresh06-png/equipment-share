@@ -90,6 +90,9 @@ export default function EquipmentDetailsPage() {
       <div className="details-sheet">
         <div className="details-name">{equipment.name}</div>
         <div className="details-id">ID · GEN-{String(equipment.equipment_id).padStart(4, "0")}</div>
+        {equipment.owner_name && (
+          <div className="details-id" style={{ marginTop: -8 }}>Listed by {equipment.owner_name}</div>
+        )}
 
         <span className={`status-pill ${status.tone}`}>{status.label}</span>
 
@@ -130,7 +133,7 @@ export default function EquipmentDetailsPage() {
           disabled={!isAvailable}
           onClick={() => setShowBooking(true)}
         >
-          {isAvailable ? "Rent now" : "Currently rented"}
+          {isAvailable ? "Rent now" : "Unavailable"}
         </button>
       </div>
 

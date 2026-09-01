@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { setSession } from "@/lib/session";
+import { login } from "@/lib/api";
 import Logo from "@/components/Logo";
 
 const NAME_PATTERN = /^[A-Za-z]+(?: [A-Za-z]+)*$/;
@@ -14,6 +15,7 @@ export default function StartPage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
 
   function validate() {
     const next = {};
@@ -27,13 +29,26 @@ export default function StartPage() {
     return Object.keys(next).length === 0;
   }
 
-  function handleContinue(e) {
+  async function handleContinue(e) {
     e.preventDefault();
     if (!role) return;
     if (!validate()) return;
 
-    setSession({ role, name: name.trim(), phone: phone.trim() });
-    router.push(role === "seller" ? "/sell" : "/rent");
+    setSubmitting(true);
+    setErrors({});
+    try {
+      // Real login: if this phone number already has an account, the
+      // backend returns that SAME account (ignoring the name/role just
+      // typed) instead of creating a duplicate. If the phone belongs to
+      // the other role, it's rejected with a clear message.
+      const res = await login({ name: name.trim(), phone: phone.trim(), role });
+      setSession(res.user);
+      router.push(res.user.role === "seller" ? "/sell" : "/rent");
+    } catch (err) {
+      setErrors({ form: err.message });
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -79,6 +94,10 @@ export default function StartPage() {
 
       {role && (
         <form onSubmit={handleContinue} style={{ marginTop: 24 }}>
+          <p style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 14 }}>
+            Already have an account? Enter the same phone number to log back in.
+          </p>
+
           <div className="form-field">
             <label htmlFor="start-name">Your full name</label>
             <input
@@ -103,8 +122,10 @@ export default function StartPage() {
             {errors.phone && <div className="field-error">{errors.phone}</div>}
           </div>
 
-          <button className="btn-primary" type="submit">
-            Continue as {role === "seller" ? "Seller" : "Buyer"}
+          {errors.form && <div className="form-message error">{errors.form}</div>}
+
+          <button className="btn-primary" type="submit" disabled={submitting}>
+            {submitting ? "Please wait..." : `Continue as ${role === "seller" ? "Seller" : "Buyer"}`}
           </button>
         </form>
       )}
