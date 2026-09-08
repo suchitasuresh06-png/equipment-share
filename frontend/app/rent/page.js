@@ -11,6 +11,7 @@ import BottomNav from "@/components/BottomNav";
 import BookingForm from "@/components/BookingForm";
 import NotificationBell from "@/components/NotificationBell";
 import Logo from "@/components/Logo";
+import FilterSheet from "@/components/FilterSheet";
 
 function greetingWord() {
   const hour = new Date().getHours();
@@ -30,6 +31,8 @@ export default function RentHomePage() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [bookingEquipment, setBookingEquipment] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [filters, setFilters] = useState({ minPrice: null, maxPrice: null, location: "" });
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
 
   useEffect(() => {
     const s = getSession();
@@ -48,7 +51,13 @@ export default function RentHomePage() {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const data = await getEquipmentList({ category, search });
+      const data = await getEquipmentList({
+        category,
+        search,
+        minPrice: filters.minPrice,
+        maxPrice: filters.maxPrice,
+        location: filters.location,
+      });
       setEquipmentList(data);
       setLastUpdated(new Date());
     } catch (err) {
@@ -62,7 +71,7 @@ export default function RentHomePage() {
     if (!session) return;
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, category, search]);
+  }, [session, category, search, filters]);
 
   if (!session) {
     return <div className="loading-state">Loading...</div>;
@@ -96,6 +105,12 @@ export default function RentHomePage() {
               <path d="m21 21-4.3-4.3" strokeLinecap="round" />
             </svg>
           </button>
+          <button type="button" className="icon-btn" onClick={() => setFilterSheetOpen(true)} aria-label="Filter equipment">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M4 6h16M7 12h10M10 18h4" strokeLinecap="round" />
+            </svg>
+            {(filters.minPrice || filters.maxPrice || filters.location) && <span className="dot" />}
+          </button>
           <NotificationBell />
         </div>
       </div>
@@ -118,6 +133,20 @@ export default function RentHomePage() {
       {searchOpen && <SearchBar value={search} onChange={setSearch} autoFocus />}
 
       <CategoryFilter selected={category} onSelect={setCategory} />
+
+      {(filters.minPrice || filters.maxPrice || filters.location) && (
+        <div className="active-filters-row">
+          <span>
+            Filtered
+            {filters.location && ` · ${filters.location}`}
+            {(filters.minPrice || filters.maxPrice) &&
+              ` · ₹${filters.minPrice || 0}–${filters.maxPrice || "∞"}`}
+          </span>
+          <button type="button" onClick={() => setFilters({ minPrice: null, maxPrice: null, location: "" })}>
+            Clear
+          </button>
+        </div>
+      )}
 
       <div className="section-header">
         <h2>Browse equipment</h2>
@@ -155,12 +184,23 @@ export default function RentHomePage() {
       {bookingEquipment && (
         <BookingForm
           equipment={bookingEquipment}
-          buyer={{ name: session.name, phone: session.phone }}
+          buyer={{ user_id: session.user_id, name: session.name, phone: session.phone, address: session.address }}
           onClose={() => setBookingEquipment(null)}
           onSuccess={() => {
             setBookingEquipment(null);
             load();
           }}
+        />
+      )}
+
+      {filterSheetOpen && (
+        <FilterSheet
+          initialFilters={filters}
+          onApply={(next) => {
+            setFilters(next);
+            setFilterSheetOpen(false);
+          }}
+          onClose={() => setFilterSheetOpen(false)}
         />
       )}
 

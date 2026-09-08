@@ -5,10 +5,10 @@ export function formatCurrency(amount) {
 }
 
 export function getStatusPill(availability) {
-  if (availability === "Available") {
-    return { label: "Available now", tone: "green" };
+  if (availability === "Available Later") {
+    return { label: "Available later", tone: "amber" };
   }
-  return { label: "Paused by seller", tone: "amber" };
+  return { label: "Available now", tone: "green" };
 }
 
 // Returns a data-URI/base64 image if the equipment has one uploaded,

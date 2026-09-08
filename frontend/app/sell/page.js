@@ -7,10 +7,9 @@ import {
   createEquipment,
   updateEquipment,
   deleteEquipment,
-  updateAvailability,
   getBookings,
 } from "@/lib/api";
-import { formatCurrency } from "@/lib/display";
+import { formatCurrency, getStatusPill } from "@/lib/display";
 import { getSession } from "@/lib/session";
 import { addNotification, getLastSeenBookingId, setLastSeenBookingId } from "@/lib/notifications";
 import BottomNav from "@/components/BottomNav";
@@ -28,8 +27,8 @@ const EMPTY_FORM = {
   rent_price: "",
   location: "",
   condition: "Good",
-  availability: "Available",
   image_base64: null,
+  delivery_available: false,
 };
 
 function greetingWord() {
@@ -131,8 +130,8 @@ export default function SellPage() {
       rent_price: String(item.rent_price),
       location: item.location,
       condition: item.condition,
-      availability: item.availability,
       image_base64: item.image_base64 || null,
+      delivery_available: item.delivery_available || false,
     });
     setFormErrors({});
     setFormOpen(true);
@@ -166,8 +165,8 @@ export default function SellPage() {
       rent_price: Number(formData.rent_price),
       location: formData.location.trim(),
       condition: formData.condition,
-      availability: formData.availability,
       image_base64: formData.image_base64,
+      delivery_available: formData.delivery_available,
     };
 
     setSaving(true);
@@ -194,17 +193,6 @@ export default function SellPage() {
     try {
       const res = await deleteEquipment(item.equipment_id, session.user_id);
       setMessage({ type: "success", text: res.message });
-      await loadEquipment(session.user_id);
-    } catch (err) {
-      setMessage({ type: "error", text: err.message });
-    }
-  }
-
-  async function handleToggleAvailability(item) {
-    const next = item.availability === "Available" ? "Rented" : "Available";
-    setMessage(null);
-    try {
-      await updateAvailability(item.equipment_id, next, session.user_id);
       await loadEquipment(session.user_id);
     } catch (err) {
       setMessage({ type: "error", text: err.message });
@@ -257,6 +245,7 @@ export default function SellPage() {
                     <div className="owner-card-sub">
                       {item.category} · {item.location} · {item.condition}
                     </div>
+                    {item.delivery_available && <div className="delivery-tag">🚚 Delivery offered</div>}
                   </div>
                 </div>
                 <div style={{ fontWeight: 800, color: "var(--navy)", whiteSpace: "nowrap" }}>
@@ -264,16 +253,13 @@ export default function SellPage() {
                 </div>
               </div>
 
-              <span className={`status-pill ${item.availability === "Available" ? "green" : "amber"}`}>
-                {item.availability === "Available" ? "Available now" : "Paused"}
+              <span className={`status-pill ${getStatusPill(item.availability).tone}`}>
+                {getStatusPill(item.availability).label}
               </span>
 
               <div className="owner-card-actions">
                 <button type="button" className="pill-btn" onClick={() => openEditForm(item)}>
                   Edit
-                </button>
-                <button type="button" className="pill-btn" onClick={() => handleToggleAvailability(item)}>
-                  {item.availability === "Available" ? "Pause listing" : "Resume listing"}
                 </button>
                 <button type="button" className="pill-btn danger" onClick={() => handleDelete(item)}>
                   Delete
@@ -376,15 +362,14 @@ export default function SellPage() {
               </div>
 
               <div className="form-field">
-                <label htmlFor="eq-availability">Availability</label>
-                <select
-                  id="eq-availability"
-                  value={formData.availability}
-                  onChange={(e) => setFormData({ ...formData, availability: e.target.value })}
-                >
-                  <option value="Available">Available</option>
-                  <option value="Rented">Paused (not bookable)</option>
-                </select>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={formData.delivery_available}
+                    onChange={(e) => setFormData({ ...formData, delivery_available: e.target.checked })}
+                  />
+                  Offer delivery for this equipment (+₹500 flat fee to the buyer)
+                </label>
               </div>
 
               <button className="btn-primary" type="submit" disabled={saving}>

@@ -6,11 +6,15 @@ exactly one seller (owner_id). Two different sellers can list a machine
 with the exact same name — they are simply two separate Equipment rows
 (two separate cards), never merged into one.
 
-Attributes: equipment_id, owner_id, name, category, rent_price, location, condition, availability
+There is no manual "paused/available" switch on equipment anymore.
+Whether a machine currently has any upcoming bookings — and is
+therefore shown as "Available" or "Available later" — is computed live
+from the bookings table (see main.py), not stored here.
+
+Attributes: equipment_id, owner_id, name, category, rent_price, location, condition
 Methods:    validate_equipment(), get_details()
 """
 
-ALLOWED_AVAILABILITY = ("Available", "Rented")
 NAME_MIN_LEN = 3
 
 
@@ -22,10 +26,10 @@ class Equipment:
         rent_price=0,
         location="",
         condition="",
-        availability="Available",
         equipment_id=None,
         owner_id=None,
         image_base64=None,
+        delivery_available=False,
     ):
         self.equipment_id = equipment_id
         self.owner_id = owner_id
@@ -34,8 +38,8 @@ class Equipment:
         self.rent_price = rent_price
         self.location = (location or "").strip()
         self.condition = (condition or "").strip()
-        self.availability = (availability or "Available").strip()
         self.image_base64 = image_base64 or None
+        self.delivery_available = bool(delivery_available)
 
     def validate_equipment(self):
         """Runs every rule needed before this listing may be saved to MySQL.
@@ -60,9 +64,6 @@ class Equipment:
         if not self.condition:
             return False, "Please specify the equipment's condition."
 
-        if self.availability not in ALLOWED_AVAILABILITY:
-            return False, "Availability must be either 'Available' or 'Rented'."
-
         if self.image_base64 and len(self.image_base64) > 6_000_000:
             return False, "Image is too large. Please use a smaller image (under ~4MB)."
 
@@ -81,6 +82,6 @@ class Equipment:
             "rent_price": float(self.rent_price),
             "location": self.location,
             "condition": self.condition,
-            "availability": self.availability,
             "image_base64": self.image_base64,
+            "delivery_available": self.delivery_available,
         }

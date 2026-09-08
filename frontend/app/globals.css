@@ -1178,3 +1178,414 @@ a {
 .booking-dates strong {
   color: var(--navy);
 }
+
+/* ---------------------------------------------------------------
+   GST Verified badge (shown next to a seller's business listings)
+------------------------------------------------------------------ */
+.gst-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: #e3f8ec;
+  color: var(--green-text);
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------
+   Cancel booking button (in booking rows)
+------------------------------------------------------------------ */
+.booking-row-actions {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+}
+
+.status-tag.cancelled {
+  background: var(--red-bg);
+  color: var(--red-text);
+}
+
+/* ---------------------------------------------------------------
+   Active filters summary (Rent page)
+------------------------------------------------------------------ */
+.active-filters-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: #eef2fb;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  margin: -8px 0 16px;
+}
+
+.active-filters-row button {
+  border: none;
+  background: none;
+  color: var(--blue-accent);
+  font-weight: 700;
+  font-size: 12px;
+  padding: 0;
+}
+
+/* ---------------------------------------------------------------
+   Availability calendar (inside the booking form)
+------------------------------------------------------------------ */
+.calendar-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.calendar-month-label {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.calendar-nav-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--navy);
+}
+
+.calendar-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.calendar-loading {
+  padding: 20px 0;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.calendar-weekdays {
+  margin-bottom: 4px;
+}
+
+.calendar-weekday {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  padding: 4px 0;
+}
+
+.calendar-day {
+  aspect-ratio: 1;
+  border: none;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--text-primary);
+}
+
+.calendar-day-past {
+  color: var(--text-muted);
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.calendar-day-free {
+  background: #eef8f0;
+  color: var(--green-text);
+}
+
+.calendar-day-booked {
+  background: var(--red-bg);
+  color: var(--red-text);
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+
+.calendar-day-selected {
+  background: #dbe4ff;
+  color: var(--navy);
+}
+
+.calendar-day-start {
+  background: var(--navy);
+  color: #fff;
+}
+
+.calendar-legend {
+  display: flex;
+  gap: 14px;
+  margin-top: 12px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.calendar-legend span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.calendar-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.calendar-dot-free { background: var(--green-text); }
+.calendar-dot-booked { background: var(--red-text); }
+.calendar-dot-selected { background: var(--navy); }
+
+/* ---------------------------------------------------------------
+   Trusted Seller badge (distinct gold tone from the green GST badge)
+------------------------------------------------------------------ */
+.trusted-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: #fff4d9;
+  color: #a8710a;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------
+   Delivery-available tag (equipment cards, seller listings)
+------------------------------------------------------------------ */
+.delivery-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--blue-accent);
+  margin-bottom: 8px;
+}
+
+/* ---------------------------------------------------------------
+   Price breakdown (booking form) — subtotal / discount / delivery
+------------------------------------------------------------------ */
+.price-breakdown {
+  margin-top: 4px;
+}
+
+.price-breakdown-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  padding: 4px 0;
+}
+
+.price-breakdown-row.discount {
+  color: var(--green-text);
+  font-weight: 600;
+}
+
+.price-breakdown-row.total {
+  border-top: 1px dashed var(--border);
+  margin-top: 4px;
+  padding-top: 8px;
+  font-weight: 800;
+  font-size: 13.5px;
+  color: var(--navy);
+}
+
+/* ---------------------------------------------------------------
+   Checkbox label (delivery opt-in etc)
+------------------------------------------------------------------ */
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--navy);
+}
+
+.hint-text {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+/* ---------------------------------------------------------------
+   Message thread (booking messages between buyer and seller)
+------------------------------------------------------------------ */
+.message-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 0 14px;
+  max-height: 50vh;
+}
+
+.message-bubble-row {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.message-bubble-row.mine {
+  justify-content: flex-end;
+}
+
+.message-bubble {
+  max-width: 78%;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 9px 12px;
+  font-size: 13.5px;
+  color: var(--text-primary);
+}
+
+.message-bubble-row.mine .message-bubble {
+  background: var(--navy);
+  color: #fff;
+  border-color: var(--navy);
+}
+
+.message-sender {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  margin-bottom: 3px;
+}
+
+.message-bubble-row.mine .message-sender {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.message-input-row {
+  display: flex;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+.message-input-row input {
+  flex: 1;
+  padding: 11px 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  font-size: 13.5px;
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text-primary);
+}
+
+.message-input-row .rent-btn {
+  padding: 10px 18px;
+}
+
+/* ---------------------------------------------------------------
+   Trusted Seller progress (profile page)
+------------------------------------------------------------------ */
+.trust-progress-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  margin-bottom: 18px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.trust-progress-bar {
+  width: 100%;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--border);
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.trust-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--blue-accent), #a8710a);
+  border-radius: var(--radius-pill);
+}
+
+/* ---------------------------------------------------------------
+   Analytics page (seller)
+------------------------------------------------------------------ */
+.analytics-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding: 6px 0;
+}
+
+.analytics-summary-row strong {
+  color: var(--text-primary);
+}
+
+.analytics-bar-row {
+  margin-bottom: 14px;
+}
+
+.analytics-bar-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.analytics-bar-track {
+  width: 100%;
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: var(--border);
+  overflow: hidden;
+}
+
+.analytics-bar-fill {
+  height: 100%;
+  background: var(--navy);
+  border-radius: var(--radius-pill);
+}

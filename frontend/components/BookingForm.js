@@ -4,6 +4,23 @@ import { useMemo, useState } from "react";
 import { createBooking } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/display";
 import { addNotification } from "@/lib/notifications";
+import AvailabilityCalendar from "@/components/AvailabilityCalendar";
+
+// Mirrors backend/booking.py's DISCOUNT_TIERS exactly, so the buyer sees
+// an accurate live preview before submitting — the backend recalculates
+// the authoritative figures anyway, this is just for instant feedback.
+const DISCOUNT_TIERS = [
+  { minDays: 30, percent: 20 },
+  { minDays: 7, percent: 10 },
+];
+const FLAT_DELIVERY_FEE = 500;
+
+function getDiscountPercent(days) {
+  for (const tier of DISCOUNT_TIERS) {
+    if (days >= tier.minDays) return tier.percent;
+  }
+  return 0;
+}
 
 function todayISO() {
   const d = new Date();
@@ -13,36 +30,48 @@ function todayISO() {
 }
 
 export default function BookingForm({ equipment, buyer, onClose, onSuccess }) {
-  const [startDate, setStartDate] = useState(todayISO());
+  const [startDate, setStartDate] = useState(null);
   const [days, setDays] = useState("1");
+  const [wantsDelivery, setWantsDelivery] = useState(false);
+  const [deliveryAddress, setDeliveryAddress] = useState(buyer.address || "");
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
 
   const numericDays = Number(days);
-  const total = useMemo(() => {
-    if (!numericDays || numericDays <= 0 || Number.isNaN(numericDays)) return 0;
-    return equipment.rent_price * numericDays;
-  }, [numericDays, equipment.rent_price]);
+  const isValidDays = numericDays > 0 && !Number.isNaN(numericDays);
+
+  const pricing = useMemo(() => {
+    if (!isValidDays) return null;
+    const subtotal = equipment.rent_price * numericDays;
+    const discountPercent = getDiscountPercent(numericDays);
+    const discountAmount = (subtotal * discountPercent) / 100;
+    const deliveryFee = wantsDelivery ? FLAT_DELIVERY_FEE : 0;
+    const total = subtotal - discountAmount + deliveryFee;
+    return { subtotal, discountPercent, discountAmount, deliveryFee, total };
+  }, [equipment.rent_price, numericDays, isValidDays, wantsDelivery]);
 
   const endDateLabel = useMemo(() => {
-    if (!startDate || !numericDays || numericDays <= 0) return null;
+    if (!startDate || !isValidDays) return null;
     const start = new Date(startDate);
     if (Number.isNaN(start.getTime())) return null;
     const end = new Date(start);
     end.setDate(end.getDate() + numericDays - 1);
     return formatDate(end);
-  }, [startDate, numericDays]);
+  }, [startDate, numericDays, isValidDays]);
 
   function validate() {
     const next = {};
     if (!startDate) {
-      next.startDate = "Please choose a start date.";
+      next.startDate = "Please tap a date on the calendar below to choose a start date.";
     } else if (startDate < todayISO()) {
       next.startDate = "Start date cannot be in the past.";
     }
-    if (!days || Number.isNaN(numericDays) || !Number.isInteger(numericDays) || numericDays <= 0) {
+    if (!isValidDays || !Number.isInteger(numericDays)) {
       next.days = "Rental days must be a whole number greater than 0.";
+    }
+    if (wantsDelivery && !deliveryAddress.trim()) {
+      next.deliveryAddress = "Please enter a delivery address.";
     }
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -53,19 +82,16 @@ export default function BookingForm({ equipment, buyer, onClose, onSuccess }) {
     setMessage(null);
 
     if (!validate()) return;
-    if (equipment.availability !== "Available") {
-      setMessage({ type: "error", text: "This equipment has been paused by its owner and isn't bookable right now." });
-      return;
-    }
 
     setSubmitting(true);
     try {
       const res = await createBooking({
-        name: buyer.name,
-        phone: buyer.phone,
-        equipment_id: equipment.equipment_id,
-        rental_start_date: startDate,
-        rental_days: numericDays,
+        userId: buyer.user_id,
+        equipmentId: equipment.equipment_id,
+        rentalStartDate: startDate,
+        rentalDays: numericDays,
+        deliveryRequested: wantsDelivery,
+        deliveryAddress: wantsDelivery ? deliveryAddress.trim() : null,
       });
       setMessage({ type: "success", text: res.message || "Booking confirmed successfully." });
       addNotification(`You booked "${equipment.name}" for ${startDate} (${numericDays} day${numericDays > 1 ? "s" : ""}).`);
@@ -73,8 +99,6 @@ export default function BookingForm({ equipment, buyer, onClose, onSuccess }) {
         onSuccess?.(res.booking);
       }, 900);
     } catch (err) {
-      // Includes date-conflict messages from the backend, e.g.
-      // "This equipment is already booked from 2027-03-01 to 2027-03-05."
       setMessage({ type: "error", text: err.message });
     } finally {
       setSubmitting(false);
@@ -99,37 +123,50 @@ export default function BookingForm({ equipment, buyer, onClose, onSuccess }) {
             <span className="label">Equipment</span>
             <span>{equipment.name}</span>
           </div>
-          <div className="summary-row">
-            <span className="label">Price per day</span>
-            <span>{formatCurrency(equipment.rent_price)}</span>
-          </div>
+          {startDate && (
+            <div className="summary-row">
+              <span className="label">Start date</span>
+              <span>{formatDate(startDate)}</span>
+            </div>
+          )}
           {endDateLabel && (
             <div className="summary-row">
               <span className="label">Rented until</span>
               <span>{endDateLabel}</span>
             </div>
           )}
-          <div className="summary-row total">
-            <span>Total amount</span>
-            <span>{formatCurrency(total)}</span>
-          </div>
+
+          {pricing && (
+            <>
+              <div className="summary-row">
+                <span className="label">Subtotal ({formatCurrency(equipment.rent_price)} × {numericDays})</span>
+                <span>{formatCurrency(pricing.subtotal)}</span>
+              </div>
+              {pricing.discountPercent > 0 && (
+                <div className="summary-row" style={{ color: "var(--green-text)" }}>
+                  <span className="label" style={{ color: "var(--green-text)" }}>
+                    Long-rental discount ({pricing.discountPercent}% off)
+                  </span>
+                  <span>-{formatCurrency(pricing.discountAmount)}</span>
+                </div>
+              )}
+              {pricing.deliveryFee > 0 && (
+                <div className="summary-row">
+                  <span className="label">Delivery fee</span>
+                  <span>{formatCurrency(pricing.deliveryFee)}</span>
+                </div>
+              )}
+              <div className="summary-row total">
+                <span>Total amount</span>
+                <span>{formatCurrency(pricing.total)}</span>
+              </div>
+            </>
+          )}
         </div>
 
         {message && <div className={`form-message ${message.type}`}>{message.text}</div>}
 
         <form onSubmit={handleSubmit}>
-          <div className="form-field">
-            <label htmlFor="start-date">Start date</label>
-            <input
-              id="start-date"
-              type="date"
-              min={todayISO()}
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-            {errors.startDate && <div className="field-error">{errors.startDate}</div>}
-          </div>
-
           <div className="form-field">
             <label htmlFor="days">Rental days</label>
             <input
@@ -141,12 +178,46 @@ export default function BookingForm({ equipment, buyer, onClose, onSuccess }) {
               onChange={(e) => setDays(e.target.value)}
             />
             {errors.days && <div className="field-error">{errors.days}</div>}
+            {isValidDays && numericDays < 7 && (
+              <p className="hint-text">Rent for 7+ days to unlock a 10% discount, or 30+ days for 20% off.</p>
+            )}
           </div>
 
-          <p style={{ fontSize: 11.5, color: "var(--text-secondary)", marginTop: -6, marginBottom: 14 }}>
-            If these dates are already taken, try a different start date — the same
-            machine can still be booked for other dates that aren&apos;t overlapping.
-          </p>
+          {equipment.delivery_available && (
+            <div className="form-field">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={wantsDelivery}
+                  onChange={(e) => setWantsDelivery(e.target.checked)}
+                />
+                Deliver to me (+{formatCurrency(FLAT_DELIVERY_FEE)})
+              </label>
+              {wantsDelivery && (
+                <>
+                  <input
+                    type="text"
+                    placeholder="Delivery address"
+                    value={deliveryAddress}
+                    onChange={(e) => setDeliveryAddress(e.target.value)}
+                    style={{ marginTop: 8 }}
+                  />
+                  {errors.deliveryAddress && <div className="field-error">{errors.deliveryAddress}</div>}
+                </>
+              )}
+            </div>
+          )}
+
+          <div className="form-field">
+            <label>Choose a start date</label>
+            <AvailabilityCalendar
+              equipmentId={equipment.equipment_id}
+              selectedStartDate={startDate}
+              rentalDays={numericDays}
+              onSelectStart={setStartDate}
+            />
+            {errors.startDate && <div className="field-error">{errors.startDate}</div>}
+          </div>
 
           <button className="btn-primary" type="submit" disabled={submitting}>
             {submitting ? "Confirming..." : "Confirm booking"}

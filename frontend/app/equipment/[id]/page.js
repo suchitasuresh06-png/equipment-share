@@ -67,7 +67,6 @@ export default function EquipmentDetailsPage() {
   }
 
   const status = getStatusPill(equipment.availability);
-  const isAvailable = equipment.availability === "Available";
   const image = getEquipmentImage(equipment);
 
   return (
@@ -91,7 +90,14 @@ export default function EquipmentDetailsPage() {
         <div className="details-name">{equipment.name}</div>
         <div className="details-id">ID · GEN-{String(equipment.equipment_id).padStart(4, "0")}</div>
         {equipment.owner_name && (
-          <div className="details-id" style={{ marginTop: -8 }}>Listed by {equipment.owner_name}</div>
+          <>
+            <div className="details-id" style={{ marginTop: -8, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              Listed by {equipment.owner_name}
+              {equipment.owner_gst_verified && <span className="gst-badge">GST Verified</span>}
+              {equipment.owner_trusted && <span className="trusted-badge">Trusted Seller</span>}
+            </div>
+            {equipment.delivery_available && <div className="delivery-tag">🚚 Delivery available</div>}
+          </>
         )}
 
         <span className={`status-pill ${status.tone}`}>{status.label}</span>
@@ -130,17 +136,16 @@ export default function EquipmentDetailsPage() {
         <button
           type="button"
           className="rent-btn"
-          disabled={!isAvailable}
           onClick={() => setShowBooking(true)}
         >
-          {isAvailable ? "Rent now" : "Unavailable"}
+          Rent now
         </button>
       </div>
 
       {showBooking && (
         <BookingForm
           equipment={equipment}
-          buyer={{ name: session.name, phone: session.phone }}
+          buyer={{ user_id: session.user_id, name: session.name, phone: session.phone, address: session.address }}
           onClose={() => setShowBooking(false)}
           onSuccess={() => {
             setShowBooking(false);
